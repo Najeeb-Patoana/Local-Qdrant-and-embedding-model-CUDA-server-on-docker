@@ -1,0 +1,14 @@
+# 1. Stop everything
+docker-compose down
+
+# 2. Start with new ports
+docker-compose up -d
+
+# 3. Check status
+docker-compose ps
+
+# 4. Test health
+curl http://localhost:85/health
+
+# 5. View logs
+docker logs embedding-api-prod -f

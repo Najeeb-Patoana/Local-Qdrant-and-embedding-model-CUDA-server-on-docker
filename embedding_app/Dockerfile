@@ -1,29 +1,53 @@
-FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-runtime
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
-WORKDIR /app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    CUDA_VISIBLE_DEVICES=0 \
+    HF_HOME=/app/models
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
     git \
     curl \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Set Python alias
+RUN ln -s /usr/bin/python3.10 /usr/bin/python
+
+# Upgrade pip
+RUN python -m pip install --upgrade pip setuptools wheel
+
+# Set working directory
+WORKDIR /app
+
 # Copy requirements
-COPY requirements.txt .
+COPY embedding_app/requirements.txt .
 
-# Install Python dependencies with extended timeout
-RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
+# Install Python dependencies (without model download)
+RUN pip install --no-cache-dir \
+    --no-verify-dependencies \
+    -r requirements.txt
 
-# Copy application
-COPY . .
+# Copy the pre-downloaded model into the container
+# This assumes you've manually downloaded the model to ./models/ on your host
+COPY models/ /app/models/
+
+# Verify model is present
+RUN ls -lh /app/models/ && \
+    if [ ! -d "/app/models/Qwen3-Embedding-4B" ]; then \
+    echo "ERROR: Model folder not found! Make sure you've downloaded it to ./models/Qwen3-Embedding-4B"; \
+    exit 1; \
+    fi
+
+# Copy application code
+COPY embedding_app/ .
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
-    CMD curl -f http://localhost:8080/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${EMBEDDING_PORT}/health || exit 1
 
-EXPOSE 8080
-
-# Run uvicorn directly
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+# Run application
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${EMBEDDING_PORT}"]

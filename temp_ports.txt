@@ -1,0 +1,20 @@
+╔════════════════════════════════════════════════════════════════╗
+║                    PORT ASSIGNMENTS                            ║
+╠════════════════════════════════════════════════════════════════╣
+║                                                                ║
+║  Windows Host                                                  ║
+║  ├─ Port 85    → Nginx (All traffic)                           ║
+║  ├─ Port 8009  → Direct Embedding API                          ║
+║  ├─ Port 6331  → Direct Qdrant REST API                        ║
+║  └─ Port 6332  → Direct Qdrant gRPC                            ║
+║                                                                ║
+║  Docker Internal (unchanged)                                   ║
+║  ├─ Port 80    → Nginx                                         ║
+║  ├─ Port 8080  → Embedding API                                 ║
+║  ├─ Port 6333  → Qdrant REST                                   ║
+║  └─ Port 6334  → Qdrant gRPC                                   ║
+║                                                                ║
+║  Public (via Ngrok)                                            ║
+║  └─ https://germinate-marvelous-outclass.ngrok-free.dev        ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
