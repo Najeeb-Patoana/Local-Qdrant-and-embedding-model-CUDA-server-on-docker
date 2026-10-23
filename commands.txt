@@ -1,14 +1,26 @@
-# 1. Stop everything
+# 1. Stop & Clean
 docker-compose down
+docker system prune -a --volumes -f
 
-# 2. Start with new ports
+# 2. Verify model (optional)
+dir models/Qwen3-Embedding-4B
+
+# 3. Build
+docker-compose build embedding-api --no-cache
+
+# 4. Start
 docker-compose up -d
 
-# 3. Check status
-docker-compose ps
+// all others are optional
 
-# 4. Test health
+# 5. Wait
+Start-Sleep -Seconds 90
+
+# 6. Check status
+docker ps
+
+# 7. Test health
 curl http://localhost:85/health
 
-# 5. View logs
-docker logs embedding-api-prod -f
+# 8. View logs
+docker logs embedding-api-prod
