@@ -1,0 +1,26 @@
+# Core FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+starlette==0.27.0
+
+# Models & ML
+torch==2.2.1
+torchvision==0.17.1
+torchaudio==2.2.1
+numpy==1.24.3
+scipy==1.11.4
+scikit-learn==1.3.2
+
+# Sentence Transformers (Fixed version for huggingface_hub compatibility)
+transformers==4.35.2
+sentence-transformers==2.2.2
+huggingface-hub==0.17.3
+
+# Utilities
+accelerate==0.25.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+requests==2.31.0
+aiofiles==23.2.1
+python-multipart==0.0.6

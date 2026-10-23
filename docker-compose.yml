@@ -1,0 +1,130 @@
+services:
+  # ==================== EMBEDDING API ====================
+  embedding-api:
+    build:
+      context: ./embedding_app
+      dockerfile: Dockerfile
+    image: ai-stack/embedding-api:latest
+    container_name: embedding-api-prod
+    restart: always
+    environment:
+      - MODEL_NAME=Qwen/Qwen3-Embedding-4B
+      - API_SECRET_KEY=${API_SECRET_KEY}
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - TZ=UTC
+    volumes:
+      - ./data/huggingface:/root/.cache/huggingface
+      - ./logs/embedding:/app/logs
+    ports:
+      - "8080:8080"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - ai-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== QDRANT VECTOR DATABASE ====================
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-db-prod
+    restart: always
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+      - QDRANT__SERVICE__MAX_RECOVER_POINTS=10000
+      - TZ=UTC
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+      - ./data/qdrant/snapshots:/qdrant/snapshots
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - ai-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== NGINX REVERSE PROXY ====================
+  nginx-router:
+    image: nginx:alpine
+    container_name: ai-stack-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - embedding-api
+      - qdrant
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ai-network
+    environment:
+      - TZ=UTC
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== NGROK TUNNEL ====================
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok-tunnel-prod
+    restart: always
+    command:
+      - start
+      - ai-stack
+      - --config
+      - /etc/ngrok.yml
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml:ro
+    depends_on:
+      - nginx-router
+    networks:
+      - ai-network
+    environment:
+      - TZ=UTC
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  ai-network:
+    driver: bridge
+
+volumes:
+  huggingface_cache:
+  qdrant_storage:

@@ -1,0 +1,8 @@
+version: "2"
+authtoken: ${NGROK_AUTHTOKEN}
+
+tunnels:
+  ai-stack:
+    proto: http
+    addr: http://nginx-router:80
+    domain: ${NGROK_DOMAIN}
